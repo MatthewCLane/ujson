@@ -1,10 +1,10 @@
 ##############################################################################
 #                                                                            #
-#   File: json2html.icn                                                     #
+#   File: createForm.icn                                                     #
 #                                                                            #
-#   Author: Jonah Schnettler                                                 #
-#   Author: Matthew Lane                                                     #
-#   Author: Derek Howland                                                    #
+#   Authors: Jonah Schnettler                                                #
+#            Matthew Lane                                                    #
+#            Derek Howland                                                   #
 #                                                                            #
 ##############################################################################
 #                                                                            #
@@ -13,11 +13,43 @@
 #                                                                            #
 ##############################################################################
 
+#<p>
+#   <b> File: </b> createForm.icn
+#</p>
+#<p>
+#   <b> Subject: </b> This program takes in a valid JSON Schema file and produces an HTML Form
+#</p>
+#<p>
+#   <b> Author: </b> Jonah Schnettler
+#   <b> Author: </b> Matthew Lane
+#   <b> Author: </b> Derek Howland
+#</p>
+#<p>
+#   <b> Via: </b> SUNY College at Brockport Computer Science Department
+#</p>
+#<p>
+#   <b> Mentors: </b> Dr.Jafar Al-Gharaibeh, and Dr. Zakariya Qawaqneh
+#</p>
+#<p>
+#   <b> Date: </b> April 2021
+#</p>
+#<p>
+#   This file is in the <i>public domain</i>.
+#</p>
+#<p>
+#   <b> Requires: </b> This program requires a valid JSON Schema file
+#</p>
+
 import xml
 link basename
 link options
 link json
 link io
+
+#Reference Table, global
+global reftable
+global reqtable
+global required_divs_Id
 
 ##############################################################################
 ##
@@ -26,6 +58,10 @@ link io
 ##       ./createForm -s <fname>
 ##
 ##############################################################################
+
+#<p>
+#   The procedure <tt>usage</tt> creates command line arguments, for taking in *.schema.json files
+#</p>
 procedure usage()
   prog := basename(&progname)
   write("Usage: ", prog, " [options]\n")
@@ -46,8 +82,17 @@ end
 ##   This is the main procedure for testing the form generator.
 ##
 ##############################################################################
+
+#<p>
+#   The procedure<tt>main</tt> contains the logic for testing the form generator
+#       <[param args option(s) when ran]>
+#</p>
 procedure main(args)
 	local prog, fname, opts, ext, json_schema, genfile, genfilename, fmt, d, dt, htag, f, elsubmit
+
+	#Initialize reftable and reqtable
+	reftable := table("reftable")
+	reqtable := table("reqtable")
 
 	opts := options(args, "hs:")
 
@@ -111,13 +156,6 @@ procedure main(args)
 #Function call that passes form.XmlElement() and json_schema data.
   createForm(json_schema, f)
 
-#Add submit button to form.
-  elsubmit := XmlElement()
-  elsubmit.set_name("input")
-  elsubmit.set_attribute("type", "submit")
-  elsubmit.set_attribute("value", "Submit")
-  f.add_child(elsubmit)
-
 #Add child tags to html document.
   b.add_child(f)
   htag.add_child(b)
@@ -141,23 +179,77 @@ end
 ##    beginning of the form section of html.
 ##
 ##############################################################################
+
+#<p>
+#   The procedure <tt>createForm</tt> produces form elements by adding <style> code for the form at the beginning of the form section of HTML
+#       <[param x JSON Schema]>
+#       <[param f <form> tag]>
+#</p>
 procedure createForm(x, f)
-  local s
+  local elbreak, s, div, elsubmit
+
+  required_divs_Id := 1
+
+#Add break element <br />
+  elbreak := XmlElement()
+  elbreak.set_name("br")
 
  #Create <style> tags.
-  s := XmlElement()
-  s.set_name("style")
- #Add css code to the style tags.
-  s.add_child("div {padding: 10px 10px 10px 10px;}")
-  s.add_child("div.solid {border-style: solid; border-width: 2px; background-color: #eea29a;}")
-  s.add_child("div.inset {border-style: inset; background-color: #eaece5;}")
-  s.add_child("div.outset {border-style: outset;}")
-  s.add_child("label.spacing {padding: 5px 5px 5px 5px}")
-  #s.add_child(".dropbtn {background-color: #b2b2b2;}")
- #Add css styles to form html.
-  f.add_child(s)
+  elStyle := XmlElement()
+  elStyle.set_name("style")
 
-  formGen(x, f)
+ #Create <script> tags.
+  elScript := XmlElement()
+  elScript.set_name("script")
+  elScript.set_attribute("type", "text/javascript")
+
+ #Add css code to the style tags.
+  elStyle.add_child("div {padding: 10px 10px 10px 10px;}")
+  elStyle.add_child("div.solid {border-style: solid; border-width: 2px; border-radius: 8px; background-color: #ff9494; display: none;}")
+  elStyle.add_child("div.inset {border-style: inset; border-width: 2px; border-radius: 10px; background-color: #f2f2f2;}")
+  elStyle.add_child("div.container {border-style: inset; border-style: inset; border-width: 2px; border-radius: 10px; background-color: #f2f2f2;}")
+  elStyle.add_child("label {padding: 10px 10px 10px 10px}")
+  #elStyle.add_child("input:required {border-radius: 5px; border: solid #eea29a;}")
+
+ #Add <style> tag to form.
+  f.add_child(elStyle)
+
+ #Create div tags to be passed.
+  div := XmlElement()
+  div.set_name("div")
+  div.set_attribute("class", "container")
+
+  formGen(x, div)
+
+ #Add break to form
+  div.add_child(elbreak)
+
+ #If validation fails, print error message.
+  errorMessage := XmlElement()
+  errorMessage.set_name("label")
+  errorMessage.set_attribute("id", "erMes")
+  errorMessage.add_child("")
+  div.add_child(errorMessage)
+
+ #Add submit button to form.
+  elsubmit := XmlElement()
+  elsubmit.set_name("button")
+  elsubmit.set_attribute("id", "myBtn")
+  elsubmit.set_attribute("type", "Submit.button")
+  elsubmit.add_child("Submit")
+  div.add_child(elsubmit)
+
+  f.add_child(div)
+
+ #Create javascript to display required div section.
+  required_script := "document.getElementById('myBtn').addEventListener('click', function() { "
+  if required_divs_Id ~== 0 then
+     every k := 1 to required_divs_Id - 1 do
+        required_script ||:= "document.getElementById("||k||").style.display ='block'; "
+  required_script ||:= "})"
+  elScript.add_child(required_script)
+
+  f.add_child(elScript)
 
 end
 
@@ -167,12 +259,16 @@ end
 ##   to be parsed.
 ##
 ##############################################################################
-procedure formGen(x, f, xparent)
-  local div, border, elbreak, elEm
 
-  div := XmlElement()
-  div.set_name("div")
-  div.set_attribute("class", "inset")
+#<p>
+#   The procedure <tt>formGen</tt> gets schema file information for form then passes data elements to recursion to be parsed
+#       <[param x schema data]>
+#       <[param div div element]>
+#       <[param xparent parent of x]>
+#       <[param xroot root of x]>
+#</p>
+procedure formGen(x, div, xparent, xroot)
+  local border, elbreak, elEm
 
   elEm := XmlElement()
   elEm.set_name("em")
@@ -187,13 +283,13 @@ procedure formGen(x, f, xparent)
     elTitle := XmlElement()
     elTitle.set_name("h3")
     elTitle.set_attribute("for", "title")
+    elTitle.set_attribute("style", "text-align: center;")
     elTitle.add_child(image(x["title"]))
     div.add_child(elTitle)
     }
   if \xparent then {
     elParent := XmlElement()
     elParent.set_name("label")
-    elParent.set_attribute("class", "spacing")
     elParent.set_attribute("for", xparent)
     elParent.add_child(image(xparent))
     div.add_child(elParent)
@@ -201,16 +297,15 @@ procedure formGen(x, f, xparent)
   if \x["description"] then {
     eldesc := XmlElement()
     eldesc.set_name("label")
-    eldesc.set_attribute("class", "spacing")
     eldesc.set_attribute("for", "description")
     elEm.add_child(image(x["description"]))
     eldesc.add_child(elEm)
     div.add_child(eldesc)
     }
 
-  genForm(x, div, xparent)
-
-  f.add_child(div)
+  if \xroot then genForm(x, div, xparent, xroot)
+  else genForm(x, div, xparent, x)
+  #f.add_child(div)
 
 end
 
@@ -221,23 +316,35 @@ end
 ##   Functionality: genFor(schema_data = x, form element = f, parent of x = xparent)
 ##
 ##############################################################################
-procedure genForm(x, f, xparent)
+
+#<p>
+#   The procedure <tt>genForm</tt> generates HTML form from JSON schema file
+#       <[param x schema data]>
+#       <[param f form element]>
+#       <[param xparent parent of x]>
+#       <[param xroot root of x]>
+#</p>
+procedure genForm(x, f, xparent, xroot)
   local k, el, elbreak, elinput, div
 
   div := XmlElement()
   div.set_name("div")
+  div.set_attribute("id", required_divs_Id)
   div.set_attribute("class", "solid")
 
+  div2 := XmlElement()
+  div2.set_name("div")
+  div2.set_attribute("class", "inset")
+
   el := XmlElement()
-  #eldesc := XmlElement()
-  #emph := XmlElement()
-  #emph.set_name("em")
 
   #input element
   elinput := XmlElement()
+
   #<br />
   elbreak := XmlElement()
   elbreak.set_name("br")
+
 ######################################################################
 #   Begin looping through schema contents.
 ######################################################################
@@ -247,17 +354,41 @@ procedure genForm(x, f, xparent)
         case x["type"] of {
           "object": {
             y := x["properties"]
-
             every k := key(y) do {
-			         formGen(y[k], f, k)
+					     if \xroot then formGen(y[k], div2, k, xroot)
+					     else formGen(y[k], div2, k, xparent)
                }
+            f.add_child(div2)
             }
 #######################################################
 # "type" : "array"
 #######################################################
           "array": {
             y := x["items"]
+			#Check for refs
+			if \y["$ref"] then {
 
+				refitem  := y["$ref"]
+				#Strip off #/$defs/ or ##/definitions/ from y["$ref"]
+				refitem ? {
+					if ="#/$defs/" | ="#/definitions/" then
+					{
+						#Set refitem to the next thing after /.
+						refitem := tab(0)
+						#Check if xroot is defined
+						if \xroot then {
+							#Iterate over defs
+							if \xroot["$defs"] then y := xroot["$defs"]
+							else if \xroot["definitions"] then y := xroot["definitions"]
+							every k := key(y) do {
+								if k == refitem then {
+									formGen(y[k], f, k,xroot)
+								}
+							}
+						}
+					}
+				}
+			}
             if \y["enum"] then {
               el.set_name("select")
               el.set_attribute("name", xparent)
@@ -301,6 +432,9 @@ procedure genForm(x, f, xparent)
 
                 #Add Input Element
 			           f.add_child(elinput)
+
+                 #Add <br/>
+                 f.add_child(elbreak)
 
                 #If there are minItems
 			           if \x["minItems"] then {
@@ -359,6 +493,8 @@ procedure genForm(x, f, xparent)
 			             f.add_child(elbreak)
                    }
                  }
+             #Add <br/>background-color: #eea29a;
+              f.add_child(elbreak)
               }
 #######################################################
 # "type" : "integer" or "number"
@@ -387,12 +523,13 @@ procedure genForm(x, f, xparent)
 				        elinput.set_attribute("id", xparent)
 				        }
 			       else {
-				        einput.set_attribute("id", "number")
+				        elinput.set_attribute("id", "number")
 				        }
 
              if \xparent
 			       then {
 				        elinput.set_attribute("name", xparent)
+
 				        }
 			       else {
 				        elinput.set_attribute("name", x[k])
@@ -400,11 +537,26 @@ procedure genForm(x, f, xparent)
 
 			      #Handle Minimum and Exclusive Minimum
              if \x["minimum"] then elinput.set_attribute("min", x["minimum"])
-			       if \x["exclusiveMinimum"] then elinput.set_attribute("min", x["exclusiveMinimum"])
+			       if \x["exclusiveMinimum"] then {
+                elinput.set_attribute("min", x["exclusiveMinimum"])
+                elinput.set_attribute("step", "any")
+                }
 
             #Handle Maximum and Exclusive Maximum
 			       if \x["maximum"] then elinput.set_attribute("max", x["maximum"])
-             if \x["exclusiveMaximum"] then elinput.set_attribute("max", x["exclusiveMaximum"])
+             if \x["exclusiveMaximum"] then {
+                elinput.set_attribute("max", x["exclusiveMaximum"])
+                elinput.set_attribute("step", "any")
+                }
+
+			#Check if input is required
+            if \key(reqtable) then {
+				every y := key(reqtable) do {
+					if y == xparent | y == x[k] then {
+						elinput.set_attribute("required", "true")
+					}
+				}
+			}
 
             #Add <br/>
 			       f.add_child(elbreak)
@@ -448,6 +600,20 @@ procedure genForm(x, f, xparent)
 				        }
 			         else elinput.set_attribute("name", x[k])
 
+               #Handle Max length and Min length
+               if \x["maxLength"] then elinput.set_attribute("maxlength", x["maxLength"])
+               if \x["minLength"] then elinput.set_attribute("minlength", x["minLength"])
+
+
+              #Check if input is required
+               if \key(reqtable) then {
+					every y := key(reqtable) do {
+						if y == xparent | y == x[k] then {
+							elinput.set_attribute("required", "true")
+						}
+					}
+				}
+
               #Add <br/>
 			         f.add_child(elbreak)
 
@@ -479,6 +645,15 @@ procedure genForm(x, f, xparent)
               elT.set_attribute("name", x[k])
               elT.set_attribute("value", "true")
               }
+           #Check if input is required
+            if \key(reqtable) then {
+				every y := key(reqtable) do {
+					if y == xparent | y == x[k] then {
+						elinput.set_attribute("required", "true")
+					}
+				}
+			}
+
             #Add <br/>
              f.add_child(elbreak)
 
@@ -509,6 +684,14 @@ procedure genForm(x, f, xparent)
               elF.set_attribute("name", x[k])
               elF.set_attribute("value", "false")
               }
+           #Check if input is required
+            if \key(reqtable) then {
+				every y := key(reqtable) do {
+					if y == xparent | y == x[k] then {
+						elinput.set_attribute("required", "true")
+					}
+				}
+			}
 
             #Add <br/>
              f.add_child(elbreak)
@@ -567,7 +750,7 @@ procedure genForm(x, f, xparent)
           "object": {
             y := x["properties"]
             every k := key(y) do {
-              formGen(y[k], f)
+              formGen(y[k], f, xroot)
               }
             }
 #######################################################
@@ -631,49 +814,86 @@ procedure genForm(x, f, xparent)
 # required
 #########################################################################
 		"required": {
+        required_divs_Id +:= 1
 				every k := key(x) do
 					y := x["required"]
 					requiredel := XmlElement()
 					requiredel.set_name("label")
-					requiredel.set_attribute("for", "required")
+					requiredel.set_attribute("id", "required")
 					requiredel.add_child("Required:")
-					every g := key(y) do
+					every g := key(y) do {
 						requiredel.add_child(y[g])
+						reqtable[y[g]] := "required"
+					}
 				div.add_child(requiredel)
 				#Add <br/>
 				div.add_child(elbreak)
 				f.add_child(div)
-			  }
+        }
 #######################################################
 # "type" : $ref
-#######################################################			
+#######################################################
 		"$ref": {
-			write("\t$ref")
-			write("\t\t", x["$ref"])
+
 			#Default case here should be a URL or a link to a def.
-			#Nested defs looks like this: "$ref": "#/$defs/veggie" 
-			#First handle a url
-			#<a href="url">link text</a>
-			reflink := XmlElement()
-			reflink.set_name("a")
-			reflink.set_attribute("href", x["$ref"])
-			#div.add_child(reflink)
-			#Add <br/>
-			#div.add_child(elbreak)
-			#f.add_child(div)
+			#Handle def link first
+
+			refitem  := x["$ref"]
+				#Strip off #/$defs/ or ##/definitions/ from y["$ref"]
+			refitem ? {
+				if ="#/$defs/" | ="#/definitions/" then {
+					#Set refitem to the next thing after /.
+					refitem := tab(0)
+					#Check if xroot is defined
+					if \xroot then {
+						#Iterate over defs
+						if \xroot["$defs"] then y := xroot["$defs"]
+						else if \xroot["definitions"] then y := xroot["definitions"]
+						every k := key(y) do {
+							if k == refitem then {
+								formGen(y[k], f, k,xroot)
+							}
+						}
+					}
+				}
+				else {
+					#Else handle as a url
+					#<a href="url">link text</a>
+					#Create Reflink with the url that $ref points to.
+					reflink := XmlElement()
+					reflink.set_name("a")
+					reflink.set_attribute("href", x["$ref"])
+					reflink.add_child(x["$ref"])
+					#Add <br/>
+					f.add_child(elbreak)
+					#Add reflink to form
+					f.add_child(reflink)
+					#Add <br/>
+					f.add_child(elbreak)
+				}
+			}
 		}
 #######################################################
 # "type" : $defs
-#######################################################		
+#######################################################
 		"$defs": {
-			write("\t$defs")
-			write("\t\t", image(x["properties"]))
-			write(image(x["$defs"]))
 			y := x["$defs"]
 			every k := key(y) do {
-				formGen(y[k], f, k)
+				#Generate teh reftable
+				reftable[image(y[k])] := k
+				#This is duplicated so lets omit this
+				#formGen(y[k], f, k, xroot)
+			}
+		}
+		"definitions": {
+			y := x["definitions"]
+			every k := key(y) do {
+				#Generate teh reftable
+				reftable[image(y[k])] := (k)
+				#This is duplicated so lets omit this
+				#formGen(y[k], f, k, xroot)
             }
-		}		
+		}
 #########################################################################
 # default
 #########################################################################
