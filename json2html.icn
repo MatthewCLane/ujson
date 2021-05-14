@@ -484,8 +484,8 @@ procedure genForm(x, f, xparent, xroot)
 			            #If there are uniqueItems
 			             if \x["uniqueItems"] then {
 				              eluniqueItems := XmlElement()
-                      eluniqueItems.set_name("label")
-                      eluniqueItems.set_attribute("for", "uniqueItems")
+							  eluniqueItems.set_name("label")
+                              eluniqueItems.set_attribute("for", "uniqueItems")
 				              eluniqueItems.add_child(" uniqueItems: "||x["uniqueItems"])
                       f.add_child(eluniqueItems)
 			                }
@@ -535,19 +535,20 @@ procedure genForm(x, f, xparent, xroot)
 				        elinput.set_attribute("name", x[k])
 				        }
 
-			      #Handle Minimum and Exclusive Minimum
+			 #Handle Minimum and Exclusive Minimum
              if \x["minimum"] then elinput.set_attribute("min", x["minimum"])
 			       if \x["exclusiveMinimum"] then {
                 elinput.set_attribute("min", x["exclusiveMinimum"])
-                elinput.set_attribute("step", "any")
                 }
-
+				
             #Handle Maximum and Exclusive Maximum
 			       if \x["maximum"] then elinput.set_attribute("max", x["maximum"])
              if \x["exclusiveMaximum"] then {
                 elinput.set_attribute("max", x["exclusiveMaximum"])
-                elinput.set_attribute("step", "any")
                 }
+			#Handle Number vs Integer	
+			if x["type"] =="number" then elinput.set_attribute("step", "0.01")
+			else elinput.set_attribute("step", "any")
 
 			#Check if input is required
             if \key(reqtable) then {
